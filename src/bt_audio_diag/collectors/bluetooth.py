@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
 
-from bt_audio_diag.models import BluetoothAdapter
+from bt_audio_diag.models import BluetoothAdapter, BluetoothDevice
 from bt_audio_diag.services.bluez_dbus import BlueZObjectManager
 
 _ADAPTER_INTERFACE = "org.bluez.Adapter1"
+_DEVICE_INTERFACE = "org.bluez.Device1"
 
 
 class BlueZDataError(ValueError):
@@ -37,6 +38,33 @@ class BlueZAdapterCollector:
         return tuple(adapters)
 
 
+class BlueZDeviceCollector:
+    """Collect normalized Bluetooth device state from BlueZ."""
+
+    def __init__(self, object_manager: BlueZObjectManager) -> None:
+        self._object_manager = object_manager
+
+    async def collect(self) -> tuple[BluetoothDevice, ...]:
+        managed_objects = await self._object_manager.get_managed_objects()
+        devices: list[BluetoothDevice] = []
+
+        for object_path in sorted(managed_objects):
+            interfaces = managed_objects[object_path]
+            properties = interfaces.get(_DEVICE_INTERFACE)
+
+            if properties is None:
+                continue
+
+            devices.append(
+                _normalize_device(
+                    object_path=object_path,
+                    properties=properties,
+                )
+            )
+
+        return tuple(devices)
+
+
 def _normalize_adapter(
     *,
     object_path: str,
@@ -67,6 +95,66 @@ def _normalize_adapter(
         pairable=_required_boolean(
             properties,
             "Pairable",
+            object_path=object_path,
+        ),
+        uuids=_string_tuple(
+            properties,
+            "UUIDs",
+            object_path=object_path,
+        ),
+    )
+
+
+def _normalize_device(
+    *,
+    object_path: str,
+    properties: Mapping[str, object],
+) -> BluetoothDevice:
+    return BluetoothDevice(
+        object_path=object_path,
+        adapter_path=_required_string(
+            properties,
+            "Adapter",
+            object_path=object_path,
+        ),
+        address=_required_string(
+            properties,
+            "Address",
+            object_path=object_path,
+        ),
+        name=_optional_string(
+            properties,
+            "Name",
+            object_path=object_path,
+        ),
+        alias=_optional_string(
+            properties,
+            "Alias",
+            object_path=object_path,
+        ),
+        paired=_required_boolean(
+            properties,
+            "Paired",
+            object_path=object_path,
+        ),
+        trusted=_required_boolean(
+            properties,
+            "Trusted",
+            object_path=object_path,
+        ),
+        connected=_required_boolean(
+            properties,
+            "Connected",
+            object_path=object_path,
+        ),
+        blocked=_required_boolean(
+            properties,
+            "Blocked",
+            object_path=object_path,
+        ),
+        rssi=_optional_integer(
+            properties,
+            "RSSI",
             object_path=object_path,
         ),
         uuids=_string_tuple(
@@ -118,6 +206,23 @@ def _required_boolean(
 
     if not isinstance(value, bool):
         raise BlueZDataError(f"{object_path}: expected boolean property {name}")
+
+    return value
+
+
+def _optional_integer(
+    properties: Mapping[str, object],
+    name: str,
+    *,
+    object_path: str,
+) -> int | None:
+    value = properties.get(name)
+
+    if value is None:
+        return None
+
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise BlueZDataError(f"{object_path}: expected integer property {name}")
 
     return value
 
