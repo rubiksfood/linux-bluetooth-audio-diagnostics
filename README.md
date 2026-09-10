@@ -26,6 +26,20 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+## CLI
+
+Show CLI help:
+
+```bash
+bt-audio-diag --help
+```
+
+Show the installed application version:
+
+```bash
+bt-audio-diag --version
+```
+
 ## Quality checks
 
 Run the test suite:
