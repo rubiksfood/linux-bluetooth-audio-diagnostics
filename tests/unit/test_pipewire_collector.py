@@ -1,9 +1,11 @@
-import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from bt_audio_diag.collectors import PipeWireCollector
 from bt_audio_diag.models import AudioNode, PipeWireDevice, PipeWireState
 from bt_audio_diag.services import CommandResult
+
+_FIXTURE_DIR = Path(__file__).parents[1] / "fixtures" / "pipewire"
 
 
 class FakeCommandRunner:
@@ -16,63 +18,22 @@ class FakeCommandRunner:
         return self._result
 
 
-def test_collect_returns_normalized_bluetooth_audio_state() -> None:
-    pw_dump = [
-        {
-            "id": 40,
-            "type": "PipeWire:Interface:Device",
-            "info": {
-                "props": {
-                    "device.api": "bluez5",
-                    "device.name": "bluez_card.AA_BB_CC_DD_EE_FF",
-                    "device.description": "Test Headphones",
-                    "api.bluez5.address": "AA:BB:CC:DD:EE:FF",
-                    "api.bluez5.path": ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF"),
-                    "device.profile.name": "a2dp-sink",
-                },
-            },
-        },
-        {
-            "id": 41,
-            "type": "PipeWire:Interface:Node",
-            "info": {
-                "state": "running",
-                "props": {
-                    "device.id": 40,
-                    "device.api": "bluez5",
-                    "node.name": ("bluez_output.AA_BB_CC_DD_EE_FF.a2dp-sink"),
-                    "node.description": "Test Headphones",
-                    "media.class": "Audio/Sink",
-                    "api.bluez5.profile": "a2dp-sink",
-                    "api.bluez5.codec": "sbc_xq",
-                    "audio.rate": 48000,
-                    "audio.channels": 2,
-                },
-            },
-        },
-        {
-            "id": 10,
-            "type": "PipeWire:Interface:Device",
-            "info": {
-                "props": {
-                    "device.api": "alsa",
-                    "device.name": "alsa_card.test",
-                },
-            },
-        },
-    ]
+def _collect_fixture(filename: str) -> PipeWireState:
+    stdout = (_FIXTURE_DIR / filename).read_text(encoding="utf-8")
 
     command_runner = FakeCommandRunner(
         CommandResult(
             returncode=0,
-            stdout=json.dumps(pw_dump),
+            stdout=stdout,
             stderr="",
         )
     )
 
-    collector = PipeWireCollector(command_runner)
+    return PipeWireCollector(command_runner).collect()
 
-    result = collector.collect()
+
+def test_collect_returns_normalized_healthy_headphones() -> None:
+    result = _collect_fixture("healthy_headphones.json")
 
     assert result == PipeWireState(
         devices=(
@@ -99,4 +60,56 @@ def test_collect_returns_normalized_bluetooth_audio_state() -> None:
                 channels=2,
             ),
         ),
+    )
+
+
+def test_collect_preserves_bluetooth_device_without_audio_nodes() -> None:
+    result = _collect_fixture("bluetooth_device_without_nodes.json")
+
+    assert len(result.devices) == 1
+    assert result.devices[0].object_id == 60
+    assert result.nodes == ()
+
+
+def test_collect_preserves_suspended_node_state() -> None:
+    result = _collect_fixture("suspended_node.json")
+
+    assert len(result.nodes) == 1
+    assert result.nodes[0].state == "suspended"
+    assert result.nodes[0].codec == "sbc"
+
+
+def test_collect_supports_duplex_headset_nodes() -> None:
+    result = _collect_fixture("headset_duplex.json")
+
+    assert tuple(node.media_class for node in result.nodes) == (
+        "Audio/Sink",
+        "Audio/Source",
+    )
+
+    assert tuple(node.device_id for node in result.nodes) == (
+        80,
+        80,
+    )
+
+    assert result.nodes[0].codec == "msbc"
+    assert result.nodes[1].codec == "msbc"
+
+
+def test_collect_sorts_multiple_bluetooth_devices_and_nodes() -> None:
+    result = _collect_fixture("multiple_bluetooth_devices.json")
+
+    assert tuple(device.object_id for device in result.devices) == (
+        100,
+        200,
+    )
+
+    assert tuple(node.object_id for node in result.nodes) == (
+        101,
+        201,
+    )
+
+    assert tuple(device.bluez_address for device in result.devices) == (
+        "AA:AA:AA:AA:AA:AA",
+        "BB:BB:BB:BB:BB:BB",
     )

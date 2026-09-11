@@ -1,0 +1,34 @@
+[
+  {
+    "id": 70,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.22_33_44_55_66_77",
+        "device.description": "Suspended Headphones",
+        "api.bluez5.address": "22:33:44:55:66:77",
+        "api.bluez5.path": "/org/bluez/hci0/dev_22_33_44_55_66_77",
+        "device.profile.name": "a2dp-sink"
+      }
+    }
+  },
+  {
+    "id": 71,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "suspended",
+      "props": {
+        "device.id": 70,
+        "node.name": "bluez_output.22_33_44_55_66_77.a2dp-sink",
+        "node.description": "Suspended Headphones",
+        "media.class": "Audio/Sink",
+        "factory.name": "api.bluez5.media.sink",
+        "api.bluez5.profile": "a2dp-sink",
+        "api.bluez5.codec": "sbc",
+        "audio.rate": 44100,
+        "audio.channels": 2
+      }
+    }
+  }
+]

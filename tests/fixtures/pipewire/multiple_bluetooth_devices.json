@@ -1,0 +1,66 @@
+[
+  {
+    "id": 200,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.BB_BB_BB_BB_BB_BB",
+        "device.description": "Headphones B",
+        "api.bluez5.address": "BB:BB:BB:BB:BB:BB",
+        "api.bluez5.path": "/org/bluez/hci0/dev_BB_BB_BB_BB_BB_BB",
+        "device.profile.name": "a2dp-sink"
+      }
+    }
+  },
+  {
+    "id": 201,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "running",
+      "props": {
+        "device.id": 200,
+        "node.name": "bluez_output.BB_BB_BB_BB_BB_BB.a2dp-sink",
+        "node.description": "Headphones B",
+        "media.class": "Audio/Sink",
+        "factory.name": "api.bluez5.media.sink",
+        "api.bluez5.profile": "a2dp-sink",
+        "api.bluez5.codec": "aac",
+        "audio.rate": 48000,
+        "audio.channels": 2
+      }
+    }
+  },
+  {
+    "id": 100,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.AA_AA_AA_AA_AA_AA",
+        "device.description": "Headphones A",
+        "api.bluez5.address": "AA:AA:AA:AA:AA:AA",
+        "api.bluez5.path": "/org/bluez/hci0/dev_AA_AA_AA_AA_AA_AA",
+        "device.profile.name": "a2dp-sink"
+      }
+    }
+  },
+  {
+    "id": 101,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "idle",
+      "props": {
+        "device.id": 100,
+        "node.name": "bluez_output.AA_AA_AA_AA_AA_AA.a2dp-sink",
+        "node.description": "Headphones A",
+        "media.class": "Audio/Sink",
+        "factory.name": "api.bluez5.media.sink",
+        "api.bluez5.profile": "a2dp-sink",
+        "api.bluez5.codec": "sbc",
+        "audio.rate": 44100,
+        "audio.channels": 2
+      }
+    }
+  }
+]
