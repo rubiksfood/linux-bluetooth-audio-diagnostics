@@ -1,0 +1,44 @@
+[
+  {
+    "id": 40,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.AA_BB_CC_DD_EE_FF",
+        "device.description": "Test Headphones",
+        "api.bluez5.address": "AA:BB:CC:DD:EE:FF",
+        "api.bluez5.path": "/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF",
+        "device.profile.name": "a2dp-sink"
+      }
+    }
+  },
+  {
+    "id": 41,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "running",
+      "props": {
+        "device.id": 40,
+        "node.name": "bluez_output.AA_BB_CC_DD_EE_FF.a2dp-sink",
+        "node.description": "Test Headphones",
+        "media.class": "Audio/Sink",
+        "factory.name": "api.bluez5.media.sink",
+        "api.bluez5.profile": "a2dp-sink",
+        "api.bluez5.codec": "sbc_xq",
+        "audio.rate": 48000,
+        "audio.channels": 2
+      }
+    }
+  },
+  {
+    "id": 10,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "alsa",
+        "device.name": "alsa_card.test"
+      }
+    }
+  }
+]

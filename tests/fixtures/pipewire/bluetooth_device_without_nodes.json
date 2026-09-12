@@ -1,0 +1,16 @@
+[
+  {
+    "id": 60,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.11_22_33_44_55_66",
+        "device.description": "Bluetooth Headphones",
+        "api.bluez5.address": "11:22:33:44:55:66",
+        "api.bluez5.path": "/org/bluez/hci0/dev_11_22_33_44_55_66",
+        "device.profile.name": "a2dp-sink"
+      }
+    }
+  }
+]

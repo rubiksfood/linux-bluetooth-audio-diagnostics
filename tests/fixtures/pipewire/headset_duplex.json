@@ -1,0 +1,52 @@
+[
+  {
+    "id": 80,
+    "type": "PipeWire:Interface:Device",
+    "info": {
+      "props": {
+        "device.api": "bluez5",
+        "device.name": "bluez_card.33_44_55_66_77_88",
+        "device.description": "Bluetooth Headset",
+        "api.bluez5.address": "33:44:55:66:77:88",
+        "api.bluez5.path": "/org/bluez/hci0/dev_33_44_55_66_77_88",
+        "device.profile.name": "headset-head-unit"
+      }
+    }
+  },
+  {
+    "id": 81,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "idle",
+      "props": {
+        "device.id": 80,
+        "node.name": "bluez_output.33_44_55_66_77_88.headset-head-unit",
+        "node.description": "Bluetooth Headset",
+        "media.class": "Audio/Sink",
+        "factory.name": "api.bluez5.sco.sink",
+        "api.bluez5.profile": "headset-head-unit",
+        "api.bluez5.codec": "msbc",
+        "audio.rate": 16000,
+        "audio.channels": 1
+      }
+    }
+  },
+  {
+    "id": 82,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "state": "running",
+      "props": {
+        "device.id": 80,
+        "node.name": "bluez_input.33_44_55_66_77_88.headset-head-unit",
+        "node.description": "Bluetooth Headset",
+        "media.class": "Audio/Source",
+        "factory.name": "api.bluez5.sco.source",
+        "api.bluez5.profile": "headset-head-unit",
+        "api.bluez5.codec": "msbc",
+        "audio.rate": 16000,
+        "audio.channels": 1
+      }
+    }
+  }
+]
