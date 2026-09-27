@@ -8,6 +8,7 @@ from bt_audio_diag.services.correlation import (
     BluetoothAudioCorrelationError,
     correlate_bluetooth_audio,
 )
+from bt_audio_diag.services.redaction import EvidenceRedactor
 from bt_audio_diag.services.system_provider import (
     PlatformSystemProvider,
     SystemProvider,
@@ -18,6 +19,7 @@ __all__ = [
     "CommandExecutionError",
     "CommandResult",
     "CommandRunner",
+    "EvidenceRedactor",
     "PlatformSystemProvider",
     "SubprocessCommandRunner",
     "SystemProvider",
