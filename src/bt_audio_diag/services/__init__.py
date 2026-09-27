@@ -1,3 +1,4 @@
+from bt_audio_diag.services.bundle import DiagnosticBundleWriter
 from bt_audio_diag.services.command_runner import (
     CommandExecutionError,
     CommandResult,
@@ -19,6 +20,7 @@ __all__ = [
     "CommandExecutionError",
     "CommandResult",
     "CommandRunner",
+    "DiagnosticBundleWriter",
     "EvidenceRedactor",
     "PlatformSystemProvider",
     "SubprocessCommandRunner",
