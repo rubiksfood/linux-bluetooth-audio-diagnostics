@@ -3,6 +3,7 @@ from bt_audio_diag.collectors.bluetooth import (
     BlueZDataError,
     BlueZDeviceCollector,
 )
+from bt_audio_diag.collectors.btmon import BtmonCollector
 from bt_audio_diag.collectors.journal import JournalCollector
 from bt_audio_diag.collectors.pipewire import (
     PipeWireCollectionError,
@@ -15,6 +16,7 @@ __all__ = [
     "BlueZAdapterCollector",
     "BlueZDataError",
     "BlueZDeviceCollector",
+    "BtmonCollector",
     "JournalCollector",
     "PipeWireCollectionError",
     "PipeWireCollector",
