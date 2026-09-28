@@ -130,6 +130,20 @@ def test_failed_capture_preserves_error_information(
     assert evidence.completed_by_timeout is False
 
 
+def test_failed_capture_without_stderr_uses_generic_error(
+    tmp_path: Path,
+) -> None:
+    runner = FakeCommandRunner(_result(returncode=2))
+
+    evidence = BtmonCollector(runner).collect(tmp_path / "bluetooth.btsnoop")
+
+    assert evidence.returncode == 2
+    assert evidence.stderr == ""
+    assert evidence.error == "btmon capture exited with status 2"
+    assert evidence.succeeded is False
+    assert evidence.completed_by_timeout is False
+
+
 @pytest.mark.parametrize(
     "duration_seconds",
     [

@@ -179,6 +179,86 @@ def test_writes_structured_bundle(
     }
 
 
+def test_bundle_preserves_failed_journal_metadata(
+    tmp_path: Path,
+) -> None:
+    journal_evidence = JournalEvidence(
+        service_name="bluetooth.service",
+        scope=JournalScope.SYSTEM,
+        command=(
+            "journalctl",
+            "--unit",
+            "bluetooth.service",
+        ),
+        stdout="",
+        stderr="Permission denied\n",
+        returncode=1,
+        error=("journalctl exited with status 1: Permission denied"),
+    )
+
+    output_directory = tmp_path / "bundle"
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=_context(),
+        pipewire_state=_pipewire_state(),
+        findings=(),
+        journal_evidence=(journal_evidence,),
+    )
+
+    metadata = json.loads(
+        (output_directory / "evidence" / "journal" / "metadata.json").read_text(encoding="utf-8")
+    )
+
+    assert metadata["journals"] == [
+        {
+            "service_name": "bluetooth.service",
+            "scope": "system",
+            "command": [
+                "journalctl",
+                "--unit",
+                "bluetooth.service",
+            ],
+            "returncode": 1,
+            "stderr": "Permission denied\n",
+            "error": ("journalctl exited with status 1: Permission denied"),
+            "succeeded": False,
+            "log_file": "bluetooth.service.log",
+        }
+    ]
+
+
+def test_empty_journal_output_creates_empty_log_file(
+    tmp_path: Path,
+) -> None:
+    journal_evidence = JournalEvidence(
+        service_name="bluetooth.service",
+        scope=JournalScope.SYSTEM,
+        command=(
+            "journalctl",
+            "--unit",
+            "bluetooth.service",
+        ),
+        stdout="",
+        stderr="",
+        returncode=0,
+    )
+
+    output_directory = tmp_path / "bundle"
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=_context(),
+        pipewire_state=_pipewire_state(),
+        findings=(),
+        journal_evidence=(journal_evidence,),
+    )
+
+    log_path = output_directory / "evidence" / "journal" / "bluetooth.service.log"
+
+    assert log_path.read_bytes() == b""
+
+
 def test_redacted_bundle_removes_sensitive_text(
     tmp_path: Path,
 ) -> None:
@@ -254,6 +334,48 @@ def test_raw_bundle_includes_available_btmon_trace(
     assert manifest["btmon_trace_included"] is True
 
 
+def test_missing_btmon_trace_is_recorded_without_failing_bundle(
+    tmp_path: Path,
+) -> None:
+    missing_trace = tmp_path / "missing.btsnoop"
+
+    evidence = BtmonEvidence(
+        output_path=str(missing_trace),
+        command=(
+            "btmon",
+            "--write",
+            str(missing_trace),
+        ),
+        duration_seconds=10,
+        controller=None,
+        returncode=124,
+        stderr="",
+    )
+
+    output_directory = tmp_path / "bundle"
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=_context(),
+        pipewire_state=_pipewire_state(),
+        findings=(),
+        btmon_evidence=evidence,
+    )
+
+    metadata = json.loads(
+        (output_directory / "evidence" / "btmon" / "metadata.json").read_text(encoding="utf-8")
+    )
+
+    assert metadata["trace_included"] is False
+    assert metadata["trace_omitted_reason"] == ("The btmon trace file was not available.")
+
+    assert (output_directory / "evidence" / "btmon" / "capture.btsnoop").exists() is False
+
+    manifest = json.loads((output_directory / "manifest.json").read_text(encoding="utf-8"))
+
+    assert manifest["btmon_trace_included"] is False
+
+
 def test_redacted_bundle_omits_raw_btmon_trace(
     tmp_path: Path,
 ) -> None:
@@ -296,6 +418,83 @@ def test_redacted_bundle_omits_raw_btmon_trace(
 
     assert metadata["trace_included"] is False
     assert "sensitive identifiers" in (metadata["trace_omitted_reason"])
+
+
+def test_redacted_bundle_sanitizes_btmon_metadata(
+    tmp_path: Path,
+) -> None:
+    sensitive_path = tmp_path / "test-host" / "AA:BB:CC:DD:EE:FF.btsnoop"
+
+    evidence = BtmonEvidence(
+        output_path=str(sensitive_path),
+        command=(
+            "btmon",
+            "--write",
+            str(sensitive_path),
+        ),
+        duration_seconds=10,
+        controller="hci0",
+        returncode=1,
+        stderr=("test-host observed AA:BB:CC:DD:EE:FF\n"),
+        error=("test-host could not capture AA:BB:CC:DD:EE:FF"),
+    )
+
+    output_directory = tmp_path / "bundle"
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=_context(),
+        pipewire_state=_pipewire_state(),
+        findings=(),
+        btmon_evidence=evidence,
+        redactor=EvidenceRedactor(
+            hostname="test-host",
+            bluetooth_addresses=("AA:BB:CC:DD:EE:FF",),
+        ),
+    )
+
+    metadata_text = (output_directory / "evidence" / "btmon" / "metadata.json").read_text(
+        encoding="utf-8"
+    )
+
+    assert "test-host" not in metadata_text
+    assert "AA:BB:CC:DD:EE:FF" not in metadata_text
+
+    assert "<hostname>" in metadata_text
+    assert "<bluetooth-address-1>" in metadata_text
+
+
+def test_bundle_preserves_pipewire_state_without_correlation(
+    tmp_path: Path,
+) -> None:
+    context = DiagnosticContext(
+        system_info=_system_info(),
+        adapters=(_adapter(),),
+        sessions=(),
+    )
+
+    output_directory = tmp_path / "bundle"
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=context,
+        pipewire_state=_pipewire_state(),
+        findings=(),
+    )
+
+    pipewire_payload = json.loads(
+        (output_directory / "state" / "pipewire.json").read_text(encoding="utf-8")
+    )
+
+    correlation_payload = json.loads(
+        (output_directory / "state" / "correlation.json").read_text(encoding="utf-8")
+    )
+
+    assert [device["object_id"] for device in pipewire_payload["devices"]] == [40]
+
+    assert correlation_payload == {
+        "sessions": [],
+    }
 
 
 def test_rejects_existing_output_directory(

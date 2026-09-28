@@ -128,6 +128,30 @@ def test_nonzero_journal_result_does_not_abort_other_collections() -> None:
     assert evidence[2].succeeded is True
 
 
+def test_nonzero_journal_result_without_stderr_uses_generic_error() -> None:
+    runner = FakeCommandRunner(
+        (
+            CommandResult(
+                returncode=5,
+                stdout="",
+                stderr="",
+            ),
+            _successful_result(),
+            _successful_result(),
+        )
+    )
+
+    evidence = JournalCollector(runner).collect()
+
+    assert evidence[0].returncode == 5
+    assert evidence[0].stderr == ""
+    assert evidence[0].error == "journalctl exited with status 5"
+    assert evidence[0].succeeded is False
+
+    assert evidence[1].succeeded is True
+    assert evidence[2].succeeded is True
+
+
 def test_custom_line_limit_is_used_for_every_service() -> None:
     runner = FakeCommandRunner(
         (
