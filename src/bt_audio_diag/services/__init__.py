@@ -1,3 +1,4 @@
+from bt_audio_diag.services.bundle import DiagnosticBundleWriter
 from bt_audio_diag.services.command_runner import (
     CommandExecutionError,
     CommandResult,
@@ -8,6 +9,7 @@ from bt_audio_diag.services.correlation import (
     BluetoothAudioCorrelationError,
     correlate_bluetooth_audio,
 )
+from bt_audio_diag.services.redaction import EvidenceRedactor
 from bt_audio_diag.services.system_provider import (
     PlatformSystemProvider,
     SystemProvider,
@@ -18,6 +20,8 @@ __all__ = [
     "CommandExecutionError",
     "CommandResult",
     "CommandRunner",
+    "DiagnosticBundleWriter",
+    "EvidenceRedactor",
     "PlatformSystemProvider",
     "SubprocessCommandRunner",
     "SystemProvider",
