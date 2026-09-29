@@ -311,13 +311,7 @@ def _node_state_finding(
         )
     else:
         severity = Severity.INFO
-        possible_cause = (
-            "A suspended node may be normal while idle, or may indicate that "
-            "audio activation has not occurred."
-        )
-        recommended_next_step = (
-            "Start audio playback or capture and check whether the node leaves the suspended state."
-        )
+        possible_cause, recommended_next_step = _suspended_node_guidance(node.media_class)
 
     return DiagnosticFinding(
         code="BT005",
@@ -329,4 +323,23 @@ def _node_state_finding(
         ),
         possible_cause=possible_cause,
         recommended_next_step=recommended_next_step,
+    )
+
+
+def _suspended_node_guidance(media_class: str) -> tuple[str, str]:
+    if media_class == "Audio/Sink":
+        return (
+            "A suspended playback node is normally idle when no application is playing audio.",
+            "Start audio playback and check whether the node leaves the suspended state.",
+        )
+
+    if media_class == "Audio/Source":
+        return (
+            "A suspended capture node is normally idle when no application is using the audio input.",
+            "Start audio capture and check whether the node leaves the suspended state.",
+        )
+
+    return (
+        "A suspended audio node may be normal while idle, or may indicate that audio activation has not occurred.",
+        "Start audio playback or capture and check whether the node leaves the suspended state.",
     )
