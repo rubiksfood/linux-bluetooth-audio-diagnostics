@@ -1,5 +1,7 @@
 import asyncio
 from importlib.metadata import version as distribution_version
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Annotated
 
 import typer
@@ -12,8 +14,10 @@ from bt_audio_diag.reporting import (
 )
 from bt_audio_diag.services import (
     BluetoothAudioCorrelationError,
+    DiagnosticBundleWriter,
     DiagnosticWorkflow,
     DiagnosticWorkflowResult,
+    EvidenceRedactor,
     PlatformSystemProvider,
     SubprocessCommandRunner,
 )
@@ -91,6 +95,131 @@ def check(
 
     if any(finding.severity in (Severity.WARNING, Severity.ERROR) for finding in result.findings):
         raise typer.Exit(code=_EXIT_DIAGNOSTIC_FINDINGS)
+
+
+@app.command()
+def capture(
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Directory to create for the diagnostic bundle.",
+        ),
+    ],
+    redact: Annotated[
+        bool,
+        typer.Option(
+            "--redact",
+            help="Redact host and Bluetooth identifiers from textual bundle content.",
+        ),
+    ] = False,
+    include_btmon: Annotated[
+        bool,
+        typer.Option(
+            "--btmon",
+            help=("Capture a bounded btmon trace. Raw traces are omitted from redacted bundles."),
+        ),
+    ] = False,
+) -> None:
+    """Capture diagnostic state and supporting evidence into a bundle."""
+
+    if output.exists():
+        typer.echo(
+            f"Error: bundle output already exists: {output}",
+            err=True,
+        )
+        raise typer.Exit(code=_EXIT_OPERATIONAL_ERROR)
+
+    result = _run_workflow_or_exit()
+
+    try:
+        _create_capture_bundle(
+            output,
+            result=result,
+            redact=redact,
+            include_btmon=include_btmon,
+        )
+    except OSError as exc:
+        typer.echo(
+            f"Error: could not create diagnostic bundle: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=_EXIT_OPERATIONAL_ERROR) from None
+
+    typer.echo(f"Diagnostic bundle written to {output}")
+
+
+def _create_capture_bundle(
+    output: Path,
+    *,
+    result: DiagnosticWorkflowResult,
+    redact: bool,
+    include_btmon: bool,
+) -> None:
+    """Collect supporting evidence and write a diagnostic bundle."""
+
+    from bt_audio_diag.collectors import BtmonCollector, JournalCollector
+
+    command_runner = SubprocessCommandRunner()
+    journal_evidence = JournalCollector(command_runner).collect()
+
+    redactor = _build_evidence_redactor(result) if redact else None
+    bundle_writer = DiagnosticBundleWriter()
+
+    if not include_btmon:
+        bundle_writer.write(
+            output,
+            context=result.context,
+            pipewire_state=result.pipewire_state,
+            findings=result.findings,
+            journal_evidence=journal_evidence,
+            redactor=redactor,
+        )
+        return
+
+    with TemporaryDirectory(prefix="bt-audio-diag-") as temporary_directory:
+        trace_path = Path(temporary_directory) / "capture.btsnoop"
+
+        btmon_evidence = BtmonCollector(command_runner).collect(trace_path)
+
+        bundle_writer.write(
+            output,
+            context=result.context,
+            pipewire_state=result.pipewire_state,
+            findings=result.findings,
+            journal_evidence=journal_evidence,
+            btmon_evidence=btmon_evidence,
+            redactor=redactor,
+        )
+
+
+def _build_evidence_redactor(
+    result: DiagnosticWorkflowResult,
+) -> EvidenceRedactor:
+    """Build a redactor from identifiers observed during collection."""
+
+    bluetooth_addresses = {adapter.address for adapter in result.context.adapters}
+
+    bluetooth_addresses.update(
+        session.bluetooth_device.address for session in result.context.sessions
+    )
+
+    bluetooth_addresses.update(
+        device.bluez_address
+        for device in result.pipewire_state.devices
+        if device.bluez_address is not None
+    )
+
+    host_aliases = {
+        adapter.alias for adapter in result.context.adapters if adapter.alias is not None
+    }
+
+    return EvidenceRedactor(
+        hostname=result.context.system_info.hostname,
+        host_aliases=host_aliases,
+        bluetooth_addresses=bluetooth_addresses,
+    )
 
 
 def _build_diagnostic_workflow() -> DiagnosticWorkflow:

@@ -96,6 +96,7 @@ class JournalCollector:
             "journalctl",
             "--no-pager",
             "--quiet",
+            "--no-hostname",
             "--output=short-iso",
             f"--lines={self._line_limit}",
         ]
