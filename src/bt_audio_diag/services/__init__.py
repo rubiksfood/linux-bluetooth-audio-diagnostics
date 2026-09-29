@@ -9,6 +9,10 @@ from bt_audio_diag.services.correlation import (
     BluetoothAudioCorrelationError,
     correlate_bluetooth_audio,
 )
+from bt_audio_diag.services.diagnostic_workflow import (
+    DiagnosticWorkflow,
+    DiagnosticWorkflowResult,
+)
 from bt_audio_diag.services.redaction import EvidenceRedactor
 from bt_audio_diag.services.system_provider import (
     PlatformSystemProvider,
@@ -21,6 +25,8 @@ __all__ = [
     "CommandResult",
     "CommandRunner",
     "DiagnosticBundleWriter",
+    "DiagnosticWorkflow",
+    "DiagnosticWorkflowResult",
     "EvidenceRedactor",
     "PlatformSystemProvider",
     "SubprocessCommandRunner",
