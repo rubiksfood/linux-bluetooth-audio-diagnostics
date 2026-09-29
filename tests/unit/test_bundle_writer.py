@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -294,6 +295,50 @@ def test_redacted_bundle_removes_sensitive_text(
     assert "AA_BB_CC_DD_EE_FF" not in bundle_text
     assert "<hostname>" in bundle_text
     assert "<bluetooth-address-" in bundle_text
+
+
+def test_redacted_bundle_removes_host_adapter_alias(
+    tmp_path: Path,
+) -> None:
+    output_directory = tmp_path / "bundle"
+
+    context = _context()
+    adapter = replace(
+        context.adapters[0],
+        alias="Private Workstation",
+    )
+    context = replace(
+        context,
+        adapters=(adapter,),
+    )
+
+    redactor = EvidenceRedactor(
+        hostname="test-host",
+        host_aliases=("Private Workstation",),
+        bluetooth_addresses=(
+            "00:11:22:33:44:55",
+            "AA:BB:CC:DD:EE:FF",
+        ),
+    )
+
+    DiagnosticBundleWriter().write(
+        output_directory,
+        context=context,
+        pipewire_state=_pipewire_state(),
+        findings=(_finding(),),
+        redactor=redactor,
+    )
+
+    text_files = (
+        *output_directory.rglob("*.json"),
+        *output_directory.rglob("*.txt"),
+        *output_directory.rglob("*.log"),
+    )
+
+    bundle_text = "\n".join(path.read_text(encoding="utf-8") for path in text_files)
+
+    assert "Private Workstation" not in bundle_text
+    assert "<hostname>" in bundle_text
 
 
 def test_raw_bundle_includes_available_btmon_trace(

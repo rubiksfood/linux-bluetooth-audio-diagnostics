@@ -48,6 +48,17 @@ def test_address_replacements_are_deterministic() -> None:
     assert second.redact_text(text) == expected
 
 
+def test_redacts_hostname_and_host_aliases() -> None:
+    redactor = EvidenceRedactor(
+        hostname="test-host",
+        host_aliases=("Private Workstation",),
+    )
+
+    text = "Host test-host advertises itself as Private Workstation."
+
+    assert redactor.redact_text(text) == ("Host <hostname> advertises itself as <hostname>.")
+
+
 def test_redacts_hostname_case_insensitively() -> None:
     redactor = EvidenceRedactor(
         hostname="test-host",

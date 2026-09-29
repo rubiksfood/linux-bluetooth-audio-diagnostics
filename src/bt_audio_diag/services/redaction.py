@@ -14,12 +14,26 @@ class EvidenceRedactor:
         self,
         *,
         hostname: str | None = None,
+        host_aliases: Iterable[str] = (),
         bluetooth_addresses: Iterable[str] = (),
     ) -> None:
         if hostname is not None and not hostname.strip():
             raise ValueError("hostname must not be empty")
 
-        self._hostname = hostname
+        normalized_host_aliases = {alias.strip() for alias in host_aliases if alias.strip()}
+
+        host_identifiers = normalized_host_aliases
+
+        if hostname is not None:
+            host_identifiers.add(hostname.strip())
+
+        self._host_patterns = tuple(
+            _hostname_pattern(identifier)
+            for identifier in sorted(
+                host_identifiers,
+                key=lambda value: (-len(value), value.casefold()),
+            )
+        )
 
         normalized_addresses = sorted(
             {_normalize_bluetooth_address(address) for address in bluetooth_addresses}
@@ -50,8 +64,8 @@ class EvidenceRedactor:
                 redacted,
             )
 
-        if self._hostname is not None:
-            redacted = _hostname_pattern(self._hostname).sub(
+        for pattern in self._host_patterns:
+            redacted = pattern.sub(
                 _HOSTNAME_REPLACEMENT,
                 redacted,
             )

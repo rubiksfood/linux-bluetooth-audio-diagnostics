@@ -165,7 +165,7 @@ def test_bt004_reports_connected_device_without_playback_node() -> None:
     assert "no playback node" in findings[0].summary
 
 
-def test_bt005_reports_suspended_node_as_information() -> None:
+def test_bt005_reports_suspended_playback_node_as_information() -> None:
     node = _audio_node(state="suspended")
 
     session = BluetoothAudioSession(
@@ -182,6 +182,40 @@ def test_bt005_reports_suspended_node_as_information() -> None:
     assert findings[0].code == "BT005"
     assert findings[0].severity is Severity.INFO
     assert "suspended" in findings[0].summary
+    assert findings[0].possible_cause == (
+        "A suspended playback node is normally idle when no application is playing audio."
+    )
+    assert findings[0].recommended_next_step == (
+        "Start audio playback and check whether the node leaves the suspended state."
+    )
+
+
+def test_bt005_reports_capture_specific_guidance_for_suspended_source() -> None:
+    node = _audio_node(
+        media_class="Audio/Source",
+        state="suspended",
+    )
+
+    session = BluetoothAudioSession(
+        bluetooth_device=_bluetooth_device(),
+        pipewire_device=_pipewire_device(),
+        playback_nodes=(_audio_node(state="running"),),
+        capture_nodes=(node,),
+    )
+
+    findings = _evaluate(
+        sessions=(session,),
+    )
+
+    assert len(findings) == 1
+    assert findings[0].code == "BT005"
+    assert findings[0].severity is Severity.INFO
+    assert findings[0].possible_cause == (
+        "A suspended capture node is normally idle when no application is using the audio input."
+    )
+    assert findings[0].recommended_next_step == (
+        "Start audio capture and check whether the node leaves the suspended state."
+    )
 
 
 def test_bt005_reports_error_node_as_error() -> None:
