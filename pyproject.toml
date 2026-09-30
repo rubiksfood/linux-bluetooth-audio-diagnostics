@@ -4,14 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "linux-bluetooth-audio-diagnostics"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Diagnostic toolkit for Linux Bluetooth audio environments."
 readme = "README.md"
+authors = [
+    { name = "Joshua Pearson" },
+]
+license = "MIT"
 requires-python = ">=3.13"
 dependencies = [
     "dbus-fast>=5.0.22,<6",
     "typer>=0.27.2,<0.28",
 ]
+
+[project.urls]
+Repository = "https://github.com/rubiksfood/linux-bluetooth-audio-diagnostics"
+Issues = "https://github.com/rubiksfood/linux-bluetooth-audio-diagnostics/issues"
 
 [project.scripts]
 bt-audio-diag = "bt_audio_diag.cli:main"
